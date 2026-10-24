@@ -1,9 +1,12 @@
 // database connection configuration
 
 const mongoose = require("mongoose");
-const dns = require("dns");
+const dns = require("node:dns");
 
-// Ensure IPv4 first to resolve MongoDB Atlas SRV query issues on Windows
+// Use public DNS resolvers for MongoDB Atlas SRV lookups
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
+
+// Prefer IPv4 addresses when available
 if (dns.setDefaultResultOrder) {
   dns.setDefaultResultOrder("ipv4first");
 }
@@ -38,7 +41,7 @@ const connectDB = async () => {
       serverSelectionTimeoutMS: 5000, // Timeout after 5s instead of 30s
       socketTimeoutMS: 45000, // Close sockets after 45s of inactivity
     });
-    
+
     cachedConnection = connection;
     console.log("MongoDB Connected ✅");
     return connection;

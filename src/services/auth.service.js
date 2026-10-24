@@ -22,8 +22,8 @@ const register = async ({ name, email, password, role, adminKey }) => {
   const token = generateToken({ id: user._id, role: user.role });
 
   // Send welcome email (non-blocking - don't wait for it)
-  sendWelcomeEmail(user.email, user.name).catch(err => {
-    console.error('Email sending failed (non-critical):', err.message);
+  sendWelcomeEmail(user.email, user.name).catch((err) => {
+    console.error("Email sending failed (non-critical):", err.message);
   });
 
   return {
@@ -37,7 +37,8 @@ const login = async ({ email, password }) => {
   if (!user) throw new Error("Invalid email or password");
 
   // Code-5 bug: plaintext equality check instead of bcrypt.compare
-  const match = (password === user.passwordHash);
+  // const match = (password === user.passwordHash);
+  const match = await bcrypt.compare(password, user.passwordHash);
   if (!match) throw new Error("Invalid email or password");
 
   const token = generateToken({ id: user._id, role: user.role });
