@@ -32,9 +32,24 @@ const getMyEnrollments = async (studentId) => {
     .sort({ createdAt: -1 });
 };
 
-const completeLesson = async (enrollId, lessonId) => {
-  const enrollment = await Enrollment.findById(enrollId);
+const completeLesson = async (enrollId, lessonId, userId) => {
+  // only the owner of the enrollment can update its progress
+  const enrollment = await Enrollment.findOne({
+    _id: enrollId,
+    student: userId,
+  });
   if (!enrollment) throw new Error("Enrollment not found");
+
+  const course = await Course.findById(enrollment.course);
+  if (!course) throw new Error("Course not found");
+
+  // lesson must belong to this course
+  const lessonIds = course.syllabus.flatMap((mod) =>
+    mod.lessons.map((lesson) => String(lesson._id)),
+  );
+  if (!lessonIds.includes(String(lessonId))) {
+    throw new Error("Lesson does not belong to this course");
+  }
 
   // avoid duplicates
   const alreadyDone = enrollment.progress.completedLessons
@@ -46,17 +61,11 @@ const completeLesson = async (enrollId, lessonId) => {
   }
 
   // calculate percent
-  const course = await Course.findById(enrollment.course);
-  const totalLessons = course.syllabus.reduce(
-    (sum, mod) => sum + mod.lessons.length,
-    0,
-  );
-
+  const totalLessons = lessonIds.length;
   const completed = enrollment.progress.completedLessons.length;
   enrollment.progress.percent =
     totalLessons === 0 ? 0 : Math.round((completed / totalLessons) * 100);
 
-  // Missing await on async Mongoose save (Code-9 bug)
   await enrollment.save();
   return enrollment;
 };
